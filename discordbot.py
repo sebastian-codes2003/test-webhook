@@ -65,11 +65,16 @@ async def notify_pull_request(title: str, url: str):
             color=discord.Color.blurple(),  # color del borde
         )
 
+        embed.set_thumbnail(
+            url="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+        )
+
         # Puedes agregar un footer
         embed.set_footer(text="GitHub Bot 🤖")
 
         # Enviar mensaje con embed
         await channel.send(embed=embed)
+
 
 def run_bot():
     bot.run(TOKEN)
