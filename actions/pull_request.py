@@ -1,7 +1,6 @@
 import discordbot
 import asyncio
 
-
 def handle_pull_request(data):
     action = data.get("action")
     if action == "opened":

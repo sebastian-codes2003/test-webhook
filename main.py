@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 EVENT_HANDLERS = {
     "issues": handle_issues,
-    "pull_request": handle_pull_request,
+    # "pull_request": handle_pull_request,
     # "fork": handle_fork,
     # "push": handle_push,
     # puedes seguir agregando más...
