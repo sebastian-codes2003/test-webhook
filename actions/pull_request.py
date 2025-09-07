@@ -1,5 +1,6 @@
 import discordbot
 import asyncio
+from utils.formatDate import formate_date
 
 
 def handle_pull_request(data):
@@ -24,7 +25,7 @@ def handle_pull_request(data):
             f"**Autor:** {author}\n"
             f"**Descripción:** {description}\n"
             f"**Ramas:** `{head_branch}` → `{base_branch}`\n"
-            f"**Creado en:** {created_at}"
+            f"**Creado en:** {formate_date(created_at)}"
         )
 
         asyncio.run_coroutine_threadsafe(

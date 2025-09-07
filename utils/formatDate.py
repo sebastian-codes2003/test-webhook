@@ -3,7 +3,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 
-def format_to_utc_minus5(iso_date: str) -> str:
+def formate_date(iso_date: str) -> str:
     # Parsear la fecha ISO (ej: 2025-09-07T18:00:53Z)
     dt_utc = datetime.strptime(iso_date, "%Y-%m-%dT%H:%M:%SZ")
     dt_utc = dt_utc.replace(tzinfo=ZoneInfo("UTC"))
