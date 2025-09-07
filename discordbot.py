@@ -57,7 +57,19 @@ async def notify_issue(title: str, url: str):
 async def notify_pull_request(title: str, url: str):
     channel = bot.get_channel(CHANNEL_ID)
     if channel:
-        await channel.send(f"🔀 Nuevo pull request: **{title}**\n🔗 {url}")
+        # Crear un embed bonito
+        embed = discord.Embed(
+            title="🔀 Nuevo Pull Request",
+            description=title,  # aquí le pasas el "formatted_title"
+            url=url,  # hace que el título sea clickeable
+            color=discord.Color.blurple(),  # color del borde
+        )
+
+        # Puedes agregar un footer
+        embed.set_footer(text="GitHub Bot 🤖")
+
+        # Enviar mensaje con embed
+        await channel.send(embed=embed)
 
 def run_bot():
     bot.run(TOKEN)
