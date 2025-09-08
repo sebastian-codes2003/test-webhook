@@ -54,25 +54,41 @@ async def notify_issue(title: str, url: str):
         await channel.send(f"📌 Nueva issue creada: **{title}**\n🔗 {url}")
 
 
-async def notify_pull_request(title: str, url: str):
+async def notify_pull_request(pr_data: dict):
     channel = bot.get_channel(CHANNEL_ID)
     if channel:
-        # Crear un embed bonito
         embed = discord.Embed(
-            title="🔀 Nuevo Pull Request",
-            description=title,  # aquí le pasas el "formatted_title"
-            url=url,  # hace que el título sea clickeable
-            color=discord.Color.blurple(),  # color del borde
+            title=f"🔀 Pull Request #{pr_data['number']}: {pr_data['title']}",
+            description=pr_data["description"],
+            url=pr_data["url"],
+            color=discord.Color.blurple(),
         )
 
+        # Autor con avatar
+        embed.set_author(
+            name=pr_data["author"],
+            icon_url=pr_data.get(
+                "author_avatar",
+                "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+            ),
+        )
+
+        # Campos adicionales
+        embed.add_field(
+            name="Ramas",
+            value=f"`{pr_data['head_branch']}` → `{pr_data['base_branch']}`",
+            inline=False,
+        )
+        embed.add_field(name="Creado en", value=pr_data["created_at"], inline=False)
+
+        # Icono GitHub
         embed.set_thumbnail(
             url="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
         )
 
-        # Puedes agregar un footer
+        # Footer
         embed.set_footer(text="GitHub Bot 🤖")
 
-        # Enviar mensaje con embed
         await channel.send(embed=embed)
 
 
