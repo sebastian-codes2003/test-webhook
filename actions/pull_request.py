@@ -8,27 +8,20 @@ def handle_pull_request(data):
     if action == "opened":
         pr = data["pull_request"]
 
-        # Extraer información del PR
-        number = pr["number"]
-        title = pr["title"]
-        author = pr["user"]["login"]
-        description = pr.get("body") or "Sin descripción"
-        base_branch = pr["base"]["ref"]
-        head_branch = pr["head"]["ref"]
-        created_at = pr["created_at"]
-
-        url = pr["html_url"]
-
-        formatted_title = (
-            f"📌 **Pull Request #{number}**\n"
-            f"**Título:** {title}\n"
-            f"**Autor:** {author}\n"
-            f"**Descripción:** {description}\n"
-            f"**Ramas:** `{head_branch}` → `{base_branch}`\n"
-            f"**Creado en:** {formate_date(created_at)}"
-        )
+        # Construir el diccionario con toda la info
+        pr_data = {
+            "number": pr["number"],
+            "title": pr["title"],
+            "author": pr["user"]["login"],
+            "author_avatar": pr["user"].get("avatar_url"),
+            "description": pr.get("body") or "Sin descripción",
+            "base_branch": pr["base"]["ref"],
+            "head_branch": pr["head"]["ref"],
+            "created_at": formate_date(pr["created_at"]),
+            "url": pr["html_url"],
+        }
 
         asyncio.run_coroutine_threadsafe(
-            discordbot.notify_pull_request(formatted_title, url),
+            discordbot.notify_pull_request(pr_data),
             discordbot.bot.loop,
         )
