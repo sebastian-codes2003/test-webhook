@@ -1,20 +1,27 @@
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+# Fallback: si ZoneInfo no tiene "America/Lima"
+LIMA_TZ = timezone(timedelta(hours=-5))
 
 def formate_date(iso_date: str) -> str:
+    """Convierte un ISO 8601 UTC a dd-mm-aaaa hh:mm en Lima"""
 
-    # Intentar parseo con y sin milisegundos
+    # Parsear con/ sin milisegundos
     try:
         dt_utc = datetime.strptime(iso_date, "%Y-%m-%dT%H:%M:%SZ")
     except ValueError:
         dt_utc = datetime.strptime(iso_date, "%Y-%m-%dT%H:%M:%S.%fZ")
 
-    # Asignar timezone UTC (siempre disponible)
+    # Asegurar que sea UTC
     dt_utc = dt_utc.replace(tzinfo=timezone.utc)
 
-    # Convertir a tu zona local
-    dt_local = dt_utc.astimezone(ZoneInfo("America/Lima"))
+    # Intentar convertir a Lima con ZoneInfo
+    try:
+        lima_tz = ZoneInfo("America/Lima")
+    except ZoneInfoNotFoundError:
+        lima_tz = LIMA_TZ  # fallback UTC-5 fijo
 
-    # Formatear
+    dt_local = dt_utc.astimezone(lima_tz)
+
     return dt_local.strftime("%d-%m-%Y %H:%M")
