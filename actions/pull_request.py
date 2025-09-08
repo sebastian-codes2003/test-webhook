@@ -1,6 +1,6 @@
 import discordbot
 import asyncio
-from utils.formatDate import formate_date
+from utils.format_date import formate_date
 
 
 def handle_pull_request(data):
