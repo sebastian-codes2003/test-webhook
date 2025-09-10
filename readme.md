@@ -18,7 +18,7 @@ Permite notificar automáticamente en un canal de Discord sobre **nuevos issues 
 
 ## 📂 Estructura del proyecto
 
-.
+```yaml
 ├── actions/ # Handlers de eventos de GitHub
 ├── bot/ # Lógica del bot de Discord
 ├── main.py # Entrada principal del servidor Flask
@@ -27,11 +27,7 @@ Permite notificar automáticamente en un canal de Discord sobre **nuevos issues 
 ├── requirements.txt
 ├── .env.template
 └── README.md
-
-yaml
-Copy code
-
----
+```
 
 ## ⚙️ Instalación
 
@@ -63,7 +59,7 @@ docker-compose up --build -d
 ## 🛠️ Uso
 Configura el webhook de GitHub para que apunte a:
 
-``` arduino
+```arduino
 http://TU_DOMINIO/webhook
 ```
 Cuando se cree un issue o pull request, el bot notificará automáticamente en el canal de Discord configurado.
