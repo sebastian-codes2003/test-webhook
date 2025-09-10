@@ -11,7 +11,6 @@ intents.members = True
 
 bot = discord.Bot(intents=intents)
 
-
 # === Eventos ===
 @bot.event
 async def on_member_join(member):
@@ -24,17 +23,22 @@ async def on_member_join(member):
 
 @bot.slash_command(name="saludo", description="Say hello to the bot")
 async def hello(ctx: discord.ApplicationContext):
-    await ctx.respond("Hola! ¿Cómo estás?")
+    try:
+        
+        await ctx.respond(f"Hola, {ctx.author.mention}! 👋")
+    except Exception as e:
+        await ctx.respond(f"Error: {str(e)}")
 
 
-class MyView(discord.ui.View):
-    @discord.ui.button(label="A button", style=discord.ButtonStyle.primary, disabled=True) # pass `disabled=True` to make the button pre-disabled
+class MyView(discord.ui.View): # Create a class called MyView that subclasses discord.ui.View
+    @discord.ui.button(label="Click me!", style=discord.ButtonStyle.primary, emoji="😎") # Create a button with the label "😎 Click me!" with color Blurple
     async def button_callback(self, button, interaction):
-        await interaction.response.send_message("You clicked the button!")
+        await interaction.response.send_message("You clicked the button!") # Send a message when the button is clicked
 
-@bot.command()
-async def button(ctx):
-    await ctx.send("Press the button!", view=MyView())
+@bot.slash_command(name="button2", description="Sends a message with a button")
+async def button(ctx: discord.ApplicationContext):
+    await ctx.respond("This is a button!", view=MyView()) # Send a message with our View class that contains the button
+
 
 # @bot.slash_command(name="kick_user", description="Kick a user from the server")
 # async def kick_user(ctx: discord.ApplicationContext, user: discord.User):
@@ -57,10 +61,10 @@ async def on_ready():
 
 
 # === Función que server.py puede usar para mandar mensajes ===
-async def notify_issue(title: str, url: str):
-    channel = bot.get_channel(CHANNEL_ID)
-    if channel:
-        await channel.send(f"📌 Nueva issue creada: **{title}**\n🔗 {url}")
+# async def notify_issue(title: str, url: str):
+#     channel = bot.get_channel(CHANNEL_ID)
+#     if channel:
+#         await channel.send(f"📌 Nueva issue creada: **{title}**\n🔗 {url}")
 
 
 async def notify_pull_request(pr_data: dict):
@@ -99,7 +103,11 @@ async def notify_pull_request(pr_data: dict):
         embed.set_footer(text="GitHub Bot 🤖")
 
         # embed button
-        embed.add_field(name="Acciones", value="Para más información, presiona el botón:", inline=False)
+        embed.add_field(
+            name="Acciones",
+            value="Para más información, presiona el botón:",
+            inline=False,
+        )
         embed.set_footer(text="GitHub Bot 🤖")
 
         await channel.send(embed=embed)

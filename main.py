@@ -3,11 +3,13 @@ from actions.issues import handle_issues
 from actions.pull_request import handle_pull_request
 import threading
 import discordbot  # importamos funciones y bot
+from discordbot import run_bot
+
 
 app = Flask(__name__)
 
 EVENT_HANDLERS = {
-    "issues": handle_issues,
+    # "issues": handle_issues,
     "pull_request": handle_pull_request,
     # "fork": handle_fork,
     # "push": handle_push,
