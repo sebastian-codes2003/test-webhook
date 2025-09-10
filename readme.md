@@ -36,24 +36,22 @@ Permite notificar automáticamente en un canal de Discord sobre **nuevos issues 
 git clone https://github.com/tu-usuario/discord-github-webhook-bot.git
 cd discord-github-webhook-bot
 ```
-### 2️⃣ Configurar variables de entorno
-Copia el archivo .env.template a .env y completa los valores necesarios:
-```bash
-cp .env.template .env
-```
-### 3️⃣ Instalar dependencias
-```bash
-pip install -r requirements.txt
-```
-### 4️⃣ Ejecutar localmente
+### 2️⃣ Ejecutar localmente
 ```bash
 python main.py
 ```
 El servidor Flask estará activo en 👉 http://localhost:5000/.
 
-### 5️⃣ Usar con Docker
+### 3️⃣ Usar con Docker Compose
+
+Despliegue de ambiente y ejecución del servidor web
 ```bash
 docker-compose up --build -d
+```
+
+Eliminación de ambiente
+```bash
+docker-compose down -v
 ```
 
 ## 🛠️ Uso
