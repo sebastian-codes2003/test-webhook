@@ -27,6 +27,15 @@ async def hello(ctx: discord.ApplicationContext):
     await ctx.respond("Hola! ¿Cómo estás?")
 
 
+class MyView(discord.ui.View):
+    @discord.ui.button(label="A button", style=discord.ButtonStyle.primary, disabled=True) # pass `disabled=True` to make the button pre-disabled
+    async def button_callback(self, button, interaction):
+        await interaction.response.send_message("You clicked the button!")
+
+@bot.command()
+async def button(ctx):
+    await ctx.send("Press the button!", view=MyView())
+
 # @bot.slash_command(name="kick_user", description="Kick a user from the server")
 # async def kick_user(ctx: discord.ApplicationContext, user: discord.User):
 #     await ctx.guild.kick(user)
@@ -87,6 +96,10 @@ async def notify_pull_request(pr_data: dict):
         )
 
         # Footer
+        embed.set_footer(text="GitHub Bot 🤖")
+
+        # embed button
+        embed.add_field(name="Acciones", value="Para más información, presiona el botón:", inline=False)
         embed.set_footer(text="GitHub Bot 🤖")
 
         await channel.send(embed=embed)
