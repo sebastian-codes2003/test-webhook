@@ -11,6 +11,7 @@ intents.members = True
 
 bot = discord.Bot(intents=intents)
 
+
 # === Eventos ===
 @bot.event
 async def on_member_join(member):
@@ -21,50 +22,66 @@ async def on_member_join(member):
         )
 
 
-@bot.slash_command(name="saludo", description="Say hello to the bot")
-async def hello(ctx: discord.ApplicationContext):
-    try:
-        
-        await ctx.respond(f"Hola, {ctx.author.mention}! 👋")
-    except Exception as e:
-        await ctx.respond(f"Error: {str(e)}")
-
-
-class MyView(discord.ui.View): # Create a class called MyView that subclasses discord.ui.View
-    @discord.ui.button(label="Click me!", style=discord.ButtonStyle.primary, emoji="😎") # Create a button with the label "😎 Click me!" with color Blurple
-    async def button_callback(self, button, interaction):
-        await interaction.response.send_message("You clicked the button!") # Send a message when the button is clicked
-
-@bot.slash_command(name="button2", description="Sends a message with a button")
-async def button(ctx: discord.ApplicationContext):
-    await ctx.respond("This is a button!", view=MyView()) # Send a message with our View class that contains the button
-
-
-# @bot.slash_command(name="kick_user", description="Kick a user from the server")
-# async def kick_user(ctx: discord.ApplicationContext, user: discord.User):
-#     await ctx.guild.kick(user)
-#     await ctx.respond(f"Usuario {user.mention} expulsado del servidor.")
-
-# @bot.slash_command(
-#     name="clear_chat_all",
-#     description="Clear all messages in the channel"
-# )
-# async def clear_chat_all(ctx: discord.ApplicationContext):
-#     await ctx.channel.purge()
-#     await ctx.respond("Chat limpiado!", ephemeral=True)
-
-
 @bot.event
 async def on_ready():
     print(f"{bot.user} ha iniciado sesión!")
     await bot.sync_commands()
 
 
+# === Comandos ===
+@bot.slash_command(name="saludo", description="Say hello to the bot")
+async def hello(ctx: discord.ApplicationContext):
+    try:
+
+        await ctx.respond(f"Hola, {ctx.author.mention}! 👋")
+    except Exception as e:
+        await ctx.respond(f"Error: {str(e)}")
+
+
+# class MyView(discord.ui.View): # Create a class called MyView that subclasses discord.ui.View
+#     @discord.ui.button(label="Click me!", style=discord.ButtonStyle.primary, emoji="😎") # Create a button with the label "😎 Click me!" with color Blurple
+#     async def button_callback(self, button, interaction):
+#         await interaction.response.send_message("You clicked the button!") # Send a message when the button is clicked
+
+# @bot.slash_command(name="button2", description="Sends a message with a button")
+# async def button(ctx: discord.ApplicationContext):
+#     await ctx.respond("This is a button!", view=MyView()) # Send a message with our View class that contains the button
+
 # === Función que server.py puede usar para mandar mensajes ===
 # async def notify_issue(title: str, url: str):
 #     channel = bot.get_channel(CHANNEL_ID)
 #     if channel:
 #         await channel.send(f"📌 Nueva issue creada: **{title}**\n🔗 {url}")
+
+# === Función que server.py puede usar para mandar mensajes (Pull request) ===
+
+
+class PullRequestViewButtons(discord.ui.View):
+    def __init__(self, pr_url: str):
+        super().__init__()
+        self.pr_url = pr_url
+
+    @discord.ui.button(label="Ver Pull Request", style=discord.ButtonStyle.link)
+    async def pr_button(
+        self, button: discord.ui.Button, interaction: discord.Interaction
+    ):
+        button.url = self.pr_url
+
+    @discord.ui.button(label="Aprobar", style=discord.ButtonStyle.success, emoji="✅")
+    async def approve_button(
+        self, button: discord.ui.Button, interaction: discord.Interaction
+    ):
+        await interaction.response.send_message(
+            "Pull Request aprobado!", ephemeral=True
+        )
+
+    @discord.ui.button(label="Rechazar", style=discord.ButtonStyle.danger, emoji="❌")
+    async def reject_button(
+        self, button: discord.ui.Button, interaction: discord.Interaction
+    ):
+        await interaction.response.send_message(
+            "Pull Request rechazado!", ephemeral=True
+        )
 
 
 async def notify_pull_request(pr_data: dict):
@@ -110,7 +127,8 @@ async def notify_pull_request(pr_data: dict):
         )
         embed.set_footer(text="GitHub Bot 🤖")
 
-        await channel.send(embed=embed)
+        view = PullRequestViewButtons(pr_data["url"])
+        await channel.send(embed=embed, view=view)
 
 
 def run_bot():
