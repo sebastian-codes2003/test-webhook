@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-# Fallback: si ZoneInfo no tiene "America/Lima"
+# Fallback: si ZoneInfo no tiene "America/Lima" 
 LIMA_TZ = timezone(timedelta(hours=-5))
 
 def formate_date(iso_date: str) -> str:
