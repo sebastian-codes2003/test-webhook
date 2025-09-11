@@ -4,14 +4,16 @@ from dotenv import load_dotenv
 from github import Github
 
 load_dotenv()
-TOKEN_DISCORD = str(os.getenv("TOKEN"))
-CHANNEL_ID = int(os.getenv("CHANNEL_ID")) 
+TOKEN_DISCORD = str(os.getenv("TOKEN_DISCORD"))
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 TOKEN_GITHUB = str(os.getenv("TOKEN_GITHUB"))
+# GITHUB_OWNER = str(os.getenv("GITHUB_OWNER"))
 
 intents = discord.Intents.default()
 intents.members = True
 
 bot = discord.Bot(intents=intents)
+gh = Github(TOKEN_GITHUB)
 
 
 # === Eventos ===
@@ -39,36 +41,75 @@ async def hello(ctx: discord.ApplicationContext):
     except Exception as e:
         await ctx.respond(f"Error: {str(e)}")
 
-# === Función que server.py puede usar para mandar mensajes (Pull request) ===
 
-class PullRequestViewButtons(discord.ui.View):
-    def __init__(self, pr_url: str):
+# === Función que server.py puede usar para mandar mensajes (Pull request) ===
+class NotificationNewPullRequestButtons(discord.ui.View):
+    def __init__(
+        self,
+        pr_url: str,
+        author_repo: str,
+        pr_number: int,
+        repo_full: str,
+        is_merged: bool,
+    ):
         super().__init__(timeout=None)
-        # Botón tipo link (sin callback, directo)
+
+        # Guardar datos para usarlos en callbacks
+        self.pr_url = pr_url
+        self.author_repo = author_repo
+        self.pr_number = pr_number
+        self.repo_full = repo_full
+        self.is_merged = is_merged
+
+        # Botón directo a GitHub
         self.add_item(
             discord.ui.Button(
-                label="Ver Pull Request", style=discord.ButtonStyle.link, url=pr_url
+                label="🔗 Ver Pull Request",
+                style=discord.ButtonStyle.link,
+                url=self.pr_url,
             )
         )
 
-    @discord.ui.button(label="Aprobar", style=discord.ButtonStyle.success, emoji="✅")
+    @discord.ui.button(
+        label="✅ Aprobar",
+        style=discord.ButtonStyle.success,
+        custom_id="approve_pr_button",
+    )
     async def approve_button(
         self, button: discord.ui.Button, interaction: discord.Interaction
     ):
-        await interaction.response.send_message(
-            "Pull Request aprobado!", ephemeral=True
+        if self.is_merged:
+            await interaction.response.send_message(
+                "⚠️ Este PR ya está mergeado.", ephemeral=True
+            )
+            return
+
+        await interaction.response.send_modal(
+            ReviewPullRequestModal(self.pr_number, self.repo_full, action="APPROVE")
         )
 
-    @discord.ui.button(label="Rechazar", style=discord.ButtonStyle.danger, emoji="❌")
+    @discord.ui.button(
+        label="❌ Rechazar",
+        style=discord.ButtonStyle.danger,
+        custom_id="reject_pr_button",
+    )
     async def reject_button(
         self, button: discord.ui.Button, interaction: discord.Interaction
     ):
-        await interaction.response.send_message(
-            "Pull Request rechazado!", ephemeral=True
+        if self.is_merged:
+            await interaction.response.send_message(
+                "⚠️ Este PR ya está mergeado.", ephemeral=True
+            )
+            return
+
+        await interaction.response.send_modal(
+            ReviewPullRequestModal(
+                self.pr_number, self.repo_full, action="REQUEST_CHANGES"
+            )
         )
 
 
-async def notify_pull_request(pr_data: dict):
+async def notify_new_pull_request(pr_data: dict):
     channel = bot.get_channel(CHANNEL_ID)
     if channel:
         embed = discord.Embed(
@@ -80,7 +121,7 @@ async def notify_pull_request(pr_data: dict):
 
         # Autor con avatar
         embed.set_author(
-            name=pr_data["author"],
+            name=pr_data["author_pr"],
             icon_url=pr_data.get(
                 "author_avatar",
                 "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
@@ -111,8 +152,66 @@ async def notify_pull_request(pr_data: dict):
         )
         embed.set_footer(text="GitHub Bot 🤖")
 
-        view = PullRequestViewButtons(pr_data["url"])
+        view = NotificationNewPullRequestButtons(
+            pr_data["url"],
+            pr_data["author_repository"],
+            pr_data["number"],
+            pr_data["repository_full"],
+            pr_data["is_merged"],
+        )
+
         await channel.send(embed=embed, view=view)
+
+
+# === Función para aceptar el pull request ===
+class ReviewPullRequestModal(discord.ui.Modal):
+    def __init__(self, pr_number: int, repo_full: str, action: str):
+        super().__init__(title=f"Revisar Pull Request #{pr_number}")
+        self.pr_number = pr_number
+        self.repo_full = repo_full
+        self.action = action
+
+        self.add_item(
+            discord.ui.InputText(
+                label="Comentarios",
+                style=discord.InputTextStyle.long,
+                placeholder="Explica por qué apruebas/rechazas este PR",
+                required=True,
+                max_length=1000,
+            )
+        )
+
+        print(f"Modal initialized for PR #{pr_number} in repo {repo_full} with action {action}")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            repo = gh.get_repo(self.repo_full)
+            pr = repo.get_pull(self.pr_number)
+            print(pr)
+            body_pull_request = self.children[0].value
+
+            if self.action == "APPROVE":
+                pr.create_review(body=body_pull_request, event="APPROVE")
+                await interaction.response.send_message(
+                    f"✅ Has aprobado el PR #{self.pr_number}.", ephemeral=True
+                )
+                print("PR approved")
+            elif self.action == "REQUEST_CHANGES":
+                pr.create_review(body=body_pull_request, event="REQUEST_CHANGES")
+                await interaction.response.send_message(
+                    f"❌ Has solicitado cambios en el PR #{self.pr_number}.",
+                    ephemeral=True,
+                )
+
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Error al revisar el PR: {e}", ephemeral=False
+            )
+
+
+async def accept_pull_request(pr_data: dict):
+    # Aquí puedes implementar la lógica para aceptar el pull request
+    pass
 
 
 def run_bot():
