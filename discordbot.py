@@ -1,10 +1,12 @@
 import discord
 import os
 from dotenv import load_dotenv
+from github import Github
 
 load_dotenv()
-TOKEN = str(os.getenv("TOKEN"))
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))  # mejor en .env
+TOKEN_DISCORD = str(os.getenv("TOKEN"))
+CHANNEL_ID = int(os.getenv("CHANNEL_ID")) 
+TOKEN_GITHUB = str(os.getenv("TOKEN_GITHUB"))
 
 intents = discord.Intents.default()
 intents.members = True
@@ -37,35 +39,17 @@ async def hello(ctx: discord.ApplicationContext):
     except Exception as e:
         await ctx.respond(f"Error: {str(e)}")
 
-
-# class MyView(discord.ui.View): # Create a class called MyView that subclasses discord.ui.View
-#     @discord.ui.button(label="Click me!", style=discord.ButtonStyle.primary, emoji="😎") # Create a button with the label "😎 Click me!" with color Blurple
-#     async def button_callback(self, button, interaction):
-#         await interaction.response.send_message("You clicked the button!") # Send a message when the button is clicked
-
-# @bot.slash_command(name="button2", description="Sends a message with a button")
-# async def button(ctx: discord.ApplicationContext):
-#     await ctx.respond("This is a button!", view=MyView()) # Send a message with our View class that contains the button
-
-# === Función que server.py puede usar para mandar mensajes ===
-# async def notify_issue(title: str, url: str):
-#     channel = bot.get_channel(CHANNEL_ID)
-#     if channel:
-#         await channel.send(f"📌 Nueva issue creada: **{title}**\n🔗 {url}")
-
 # === Función que server.py puede usar para mandar mensajes (Pull request) ===
-
 
 class PullRequestViewButtons(discord.ui.View):
     def __init__(self, pr_url: str):
-        super().__init__()
-        self.pr_url = pr_url
-
-    @discord.ui.button(label="Ver Pull Request", style=discord.ButtonStyle.link)
-    async def pr_button(
-        self, button: discord.ui.Button, interaction: discord.Interaction
-    ):
-        button.url = self.pr_url
+        super().__init__(timeout=None)
+        # Botón tipo link (sin callback, directo)
+        self.add_item(
+            discord.ui.Button(
+                label="Ver Pull Request", style=discord.ButtonStyle.link, url=pr_url
+            )
+        )
 
     @discord.ui.button(label="Aprobar", style=discord.ButtonStyle.success, emoji="✅")
     async def approve_button(
@@ -132,4 +116,4 @@ async def notify_pull_request(pr_data: dict):
 
 
 def run_bot():
-    bot.run(TOKEN)
+    bot.run(TOKEN_DISCORD)
