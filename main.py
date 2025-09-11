@@ -1,6 +1,6 @@
 from flask import Flask, request
-from actions.issues import handle_issues
-from actions.pull_request import handle_pull_request
+#from actions.issues import handle_issues
+from handlers.pull_request import handle_pull_request
 import threading
 import discordbot  # importamos funciones y bot
 from discordbot import run_bot
@@ -13,7 +13,6 @@ EVENT_HANDLERS = {
     "pull_request": handle_pull_request,
     # "fork": handle_fork,
     # "push": handle_push,
-    # puedes seguir agregando más...
 }
 
 
