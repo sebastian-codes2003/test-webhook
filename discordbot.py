@@ -3,10 +3,13 @@ import os
 from dotenv import load_dotenv
 from github import Github
 
+
 load_dotenv()
 TOKEN_DISCORD = str(os.getenv("TOKEN_DISCORD"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 TOKEN_GITHUB = str(os.getenv("TOKEN_GITHUB"))
+ADMINS_APPROVE = os.getenv("ADMINS_APPROVE", "")
+ADMIN_MERGE = os.getenv("ADMIN_MERGE", "")
 # GITHUB_OWNER = str(os.getenv("GITHUB_OWNER"))
 
 intents = discord.Intents.default()
@@ -103,9 +106,7 @@ class NotificationNewPullRequestButtons(discord.ui.View):
             return
 
         await interaction.response.send_modal(
-            ReviewPullRequestModal(
-                self.pr_number, self.repo_full, action="REQUEST_CHANGES"
-            )
+            ReviewPullRequestModal(self.pr_number, self.repo_full, action="REJECT")
         )
 
 
@@ -171,6 +172,7 @@ class ReviewPullRequestModal(discord.ui.Modal):
         self.repo_full = repo_full
         self.action = action
 
+        # 👇 Con Pycord se usa InputText
         self.add_item(
             discord.ui.InputText(
                 label="Comentarios",
@@ -181,32 +183,35 @@ class ReviewPullRequestModal(discord.ui.Modal):
             )
         )
 
-        print(f"Modal initialized for PR #{pr_number} in repo {repo_full} with action {action}")
-
-    async def on_submit(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction):
         try:
+            await interaction.response.defer(ephemeral=True)
+
             repo = gh.get_repo(self.repo_full)
             pr = repo.get_pull(self.pr_number)
-            print(pr)
-            body_pull_request = self.children[0].value
+            body_pull_request = str(self.children[0].value)
 
             if self.action == "APPROVE":
                 pr.create_review(body=body_pull_request, event="APPROVE")
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     f"✅ Has aprobado el PR #{self.pr_number}.", ephemeral=True
                 )
                 print("PR approved")
-            elif self.action == "REQUEST_CHANGES":
-                pr.create_review(body=body_pull_request, event="REQUEST_CHANGES")
-                await interaction.response.send_message(
-                    f"❌ Has solicitado cambios en el PR #{self.pr_number}.",
+
+            elif self.action == "REJECT":
+                pr.create_issue_comment(body_pull_request)
+                pr.edit(state="closed")
+                await interaction.followup.send(
+                    f"❌ Has rechazado y cerrado el PR #{self.pr_number}.",
                     ephemeral=True,
                 )
+                print("PR rejected and closed")
 
         except Exception as e:
-            await interaction.response.send_message(
-                f"❌ Error al revisar el PR: {e}", ephemeral=False
+            await interaction.followup.send(
+                f"❌ Error al revisar el PR: {e}", ephemeral=True
             )
+            print("Error al revisar el PR:", e)
 
 
 async def accept_pull_request(pr_data: dict):
