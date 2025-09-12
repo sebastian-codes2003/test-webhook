@@ -6,10 +6,10 @@ from github import Github
 
 load_dotenv()
 TOKEN_DISCORD = str(os.getenv("TOKEN_DISCORD"))
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+CHANNEL_ID_PULL_REQUEST = int(os.getenv("CHANNEL_ID_PULL_REQUEST"))
 TOKEN_GITHUB = str(os.getenv("TOKEN_GITHUB"))
-ADMINS_APPROVE = os.getenv("ADMINS_APPROVE", "")
-ADMIN_MERGE = os.getenv("ADMIN_MERGE", "")
+ADMINS_REVIEWER = list(map(int, os.getenv("ADMINS_REVIEWER", "").split(",")))
+ADMINS_MERGE = list(map(int, os.getenv("ADMINS_MERGE", "").split(",")))
 # GITHUB_OWNER = str(os.getenv("GITHUB_OWNER"))
 
 intents = discord.Intents.default()
@@ -53,18 +53,14 @@ class NotificationNewPullRequestButtons(discord.ui.View):
         author_repo: str,
         pr_number: int,
         repo_full: str,
-        is_merged: bool,
     ):
         super().__init__(timeout=None)
 
-        # Guardar datos para usarlos en callbacks
         self.pr_url = pr_url
         self.author_repo = author_repo
         self.pr_number = pr_number
         self.repo_full = repo_full
-        self.is_merged = is_merged
 
-        # Botón directo a GitHub
         self.add_item(
             discord.ui.Button(
                 label="🔗 Ver Pull Request",
@@ -72,6 +68,38 @@ class NotificationNewPullRequestButtons(discord.ui.View):
                 url=self.pr_url,
             )
         )
+        
+    async def validate_pr(self, interaction: discord.Interaction, action: str) -> bool:
+
+        if not has_permission(interaction.user.id, action=action):
+            await interaction.response.send_message(
+                f"🚫 No tienes permisos para {action.lower()} este PR.",
+                ephemeral=False,
+            )
+            return False
+
+        repo = gh.get_repo(self.repo_full)
+        pr = repo.get_pull(self.pr_number)
+
+        if pr.state == "closed" or pr.state == "merged":
+            await interaction.response.send_message(
+                f"⚠️ El PR #{self.pr_number} ya está cerrado o mergeado.",
+                ephemeral=False,
+            )
+            return False
+
+        reviews = pr.get_reviews()
+        for review in reviews:
+            if (
+                action == "APPROVE" or action == "REJECT"
+            ) and review.state == "APPROVED":
+                await interaction.response.send_message(
+                    f"⚠️ Este PR #{self.pr_number} ya fue aprobado por **{review.user.login}**.",
+                    ephemeral=False,
+                )
+                return False
+
+        return True
 
     @discord.ui.button(
         label="✅ Aprobar",
@@ -81,10 +109,7 @@ class NotificationNewPullRequestButtons(discord.ui.View):
     async def approve_button(
         self, button: discord.ui.Button, interaction: discord.Interaction
     ):
-        if self.is_merged:
-            await interaction.response.send_message(
-                "⚠️ Este PR ya está mergeado.", ephemeral=True
-            )
+        if not await self.validate_pr(interaction, action="APPROVE"):
             return
 
         await interaction.response.send_modal(
@@ -99,10 +124,7 @@ class NotificationNewPullRequestButtons(discord.ui.View):
     async def reject_button(
         self, button: discord.ui.Button, interaction: discord.Interaction
     ):
-        if self.is_merged:
-            await interaction.response.send_message(
-                "⚠️ Este PR ya está mergeado.", ephemeral=True
-            )
+        if not await self.validate_pr(interaction, action="REJECT"):
             return
 
         await interaction.response.send_modal(
@@ -111,7 +133,7 @@ class NotificationNewPullRequestButtons(discord.ui.View):
 
 
 async def notify_new_pull_request(pr_data: dict):
-    channel = bot.get_channel(CHANNEL_ID)
+    channel = bot.get_channel(CHANNEL_ID_PULL_REQUEST)
     if channel:
         embed = discord.Embed(
             title=f"🔀 Pull Request #{pr_data['number']}: {pr_data['title']}",
@@ -158,16 +180,15 @@ async def notify_new_pull_request(pr_data: dict):
             pr_data["author_repository"],
             pr_data["number"],
             pr_data["repository_full"],
-            pr_data["is_merged"],
         )
 
         await channel.send(embed=embed, view=view)
 
 
-# === Función para aceptar el pull request ===
+# === Función para aceptar / rechazar el pull request ===
 class ReviewPullRequestModal(discord.ui.Modal):
     def __init__(self, pr_number: int, repo_full: str, action: str):
-        super().__init__(title=f"Revisar Pull Request #{pr_number}")
+        super().__init__(title=f"Revisar Pull Request #{pr_number}", timeout=None)
         self.pr_number = pr_number
         self.repo_full = repo_full
         self.action = action
@@ -194,16 +215,23 @@ class ReviewPullRequestModal(discord.ui.Modal):
             if self.action == "APPROVE":
                 pr.create_review(body=body_pull_request, event="APPROVE")
                 await interaction.followup.send(
-                    f"✅ Has aprobado el PR #{self.pr_number}.", ephemeral=True
+                    f"✅ Has aprobado el PR #{self.pr_number}.", ephemeral=False
                 )
                 print("PR approved")
 
+                channel = bot.get_channel(CHANNEL_ID_PULL_REQUEST)
+                if channel:
+                    # mande notificacion a otro canal
+                    await send_request_to_merge_notification(
+                        channel, self.repo_full, self.pr_number
+                    )
+
             elif self.action == "REJECT":
-                pr.create_issue_comment(body_pull_request)
-                pr.edit(state="closed")
+                pr.create_review(body=body_pull_request, event="REQUEST_CHANGES")
+                pr.edit(state="closed") 
                 await interaction.followup.send(
                     f"❌ Has rechazado y cerrado el PR #{self.pr_number}.",
-                    ephemeral=True,
+                    ephemeral=False,
                 )
                 print("PR rejected and closed")
 
@@ -214,9 +242,81 @@ class ReviewPullRequestModal(discord.ui.Modal):
             print("Error al revisar el PR:", e)
 
 
-async def accept_pull_request(pr_data: dict):
-    # Aquí puedes implementar la lógica para aceptar el pull request
-    pass
+# === Funcion para fusionar el pull request ===
+class RequestToMergeButtons(discord.ui.View):
+    def __init__(self, pr_number: int, repo_full: str):
+        super().__init__(timeout=None)
+        self.pr_number = pr_number
+        self.repo_full = repo_full
+
+    @discord.ui.button(
+        label="🔀 Mergear Pull Request",
+        style=discord.ButtonStyle.primary,
+        custom_id="merge_pr_button",
+    )
+    async def merge_button(
+        self, button: discord.ui.Button, interaction: discord.Interaction
+    ):
+        # 1. Permisos
+        if not has_permission(interaction.user.id, action="MERGE"):
+            await interaction.response.send_message(
+                "🚫 No tienes permisos para mergear este PR.", ephemeral=False
+            )
+            return
+
+        try:
+            repo = gh.get_repo(self.repo_full)
+            pr = repo.get_pull(self.pr_number)
+
+            # 2. Estado del PR
+            if pr.state == "closed" or pr.state == "merged":
+                await interaction.response.send_message(
+                    f"⚠️ El PR #{self.pr_number} ya está cerrado o mergeado.",
+                    ephemeral=False,
+                )
+                return
+
+            # 3. Mergear el PR
+            pr.merge()
+            await interaction.response.send_message(
+                f"✅ Has mergeado el PR #{self.pr_number}.", ephemeral=False
+            )
+            print("PR merged")
+
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Error al mergear: {e}", ephemeral=True
+            )
+
+
+async def send_request_to_merge_notification(channel, repo_full: str, pr_number: int):
+    embed = discord.Embed(
+        title=f"🔔 Solicitud de Merge para PR #{pr_number}",
+        description=f"El PR #{pr_number} en el repositorio **{repo_full}** ha sido aprobado y está listo para ser mergeado.",
+        color=discord.Color.green(),
+    )
+
+    # Icono GitHub
+    embed.set_thumbnail(
+        url="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+    )
+
+    # Footer
+    embed.set_footer(text="GitHub Bot 🤖")
+
+    view = RequestToMergeButtons(pr_number, repo_full)
+
+    await channel.send(embed=embed, view=view)
+
+# === Funcion para verificar permisos ===
+def has_permission(user_id: int, action: str) -> bool:
+    if action == "APPROVE":
+        return user_id in ADMINS_REVIEWER
+    elif action == "MERGE":
+        return user_id in ADMINS_MERGE
+    elif action == "REJECT":
+        return user_id in ADMINS_REVIEWER
+    return False
 
 
 def run_bot():
