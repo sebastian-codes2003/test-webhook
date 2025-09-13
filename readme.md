@@ -1,18 +1,22 @@
-# Discord GitHub Webhook Bot
 
-Este proyecto integra un **bot de Discord** con un **servidor Flask** que recibe *webhooks* de GitHub.  
-Permite notificar automáticamente en un canal de Discord sobre **nuevos issues y pull requests** en un repositorio, mostrando información enriquecida y comandos interactivos.
+# Discord GitHub Pull Request Manager
+
+Este proyecto permite **notificar y gestionar pull requests de GitHub directamente desde Discord**. Un bot recibe los webhooks de GitHub y publica los pull requests en un canal de Discord, donde los usuarios pueden:
+- **Aprobar** un pull request
+- **Rechazar** un pull request
+- **Hacer merge** de ramas
+Todo esto mediante botones y comandos interactivos en Discord, facilitando la colaboración y revisión de código sin salir de la plataforma.
 
 ---
 
 ## 🚀 Características
 
-- 🌐 Servidor **Flask** que expone un endpoint `/webhook` para recibir eventos de GitHub.  
-- 🤖 **Bot de Discord** con comandos y eventos personalizados.  
-- 🔔 Notificaciones automáticas en Discord para **issues** y **pull requests**.  
-- 🐳 **Docker y Docker Compose** para despliegue sencillo.  
-- 🕒 Conversión de fechas a la zona horaria de **Lima**.  
-- 📂 Estructura modular para fácil extensión de eventos y comandos.  
+- 🌐 Servidor **Flask** que expone un endpoint `/webhook` para recibir eventos de GitHub.
+- 🤖 **Bot de Discord** que publica pull requests en un canal y permite gestionarlos (aprobar, rechazar, merge) desde Discord.
+- 🔔 Notificaciones automáticas y acciones interactivas sobre pull requests.
+- 🐳 **Docker y Docker Compose** para despliegue sencillo.
+- 🕒 Conversión de fechas a la zona horaria de **Lima**.
+- 📂 Estructura modular para fácil extensión de eventos y comandos.
 
 ---
 
@@ -67,6 +71,7 @@ docker-compose down -v
 ```
 
 ## 🛠️ Uso
+
 Configura el webhook de GitHub para que apunte a:
 
 ```arduino
@@ -77,7 +82,7 @@ O si usas ngrok:
 ```arduino
 http://<tu-url-ngrok>/webhook
 ```
-Cuando se cree un issue o pull request, el bot notificará automáticamente en el canal de Discord configurado.
+Cuando se cree un pull request, el bot lo publicará en el canal de Discord configurado. Desde ahí, los usuarios podrán aprobar, rechazar o hacer merge del pull request directamente desde Discord.
 
 ##  📦 Librerías principales
 * Flask
