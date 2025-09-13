@@ -94,4 +94,20 @@ Cuando se cree un pull request, el bot lo publicará en el canal de Discord conf
 ## 🖥️ Tecnologías y herramientas
 * Docker
 * Docker Compose
-* ngrok (para desarrollo local y pruebas de webhooks)
+
+## 🗝️ Configuración del archivo .env
+
+
+Debes crear un archivo `.env` en la raíz del proyecto con las siguientes variables:
+
+| Variable                | Descripción                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| `TOKEN_DISCORD`      | Token de autenticación del bot de Discord. Permite que el bot se conecte y opere en tu servidor. |
+| `CHANNEL_ID_PULL_REQUEST` | ID del canal de Discord donde se publicarán y gestionarán los pull requests. |
+| `TOKEN_GITHUB`       | Token personal de GitHub para acceder a la API y recibir eventos de webhooks. |
+| `ADMINS_REVIEWER`    | Lista de IDs de usuarios de Discord autorizados para aprobar o rechazar pull requests. |
+| `ADMINS_MERGE`       | Lista de IDs de usuarios de Discord autorizados para hacer merge de los pull requests. |
+
+
+
+Asegúrate de completar cada variable con tus propios datos. Puedes usar `.env.template` como referencia.
