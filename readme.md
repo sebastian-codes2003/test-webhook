@@ -19,7 +19,7 @@ Permite notificar automáticamente en un canal de Discord sobre **nuevos issues 
 ## 📂 Estructura del proyecto
 
 ```yaml
-├── actions/            # Handlers para eventos de GitHub (issues, pull_request)
+├── handlers/            # Handlers para eventos de GitHub (issues, pull_request)
 ├── utils/              # Utilidades (formateo de fechas)
 ├── discordbot.py       # Lógica y comandos del bot de Discord
 ├── main.py             # Servidor Flask y webhook principal
