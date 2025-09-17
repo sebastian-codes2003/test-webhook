@@ -90,9 +90,7 @@ class NotificationNewPullRequestButtons(discord.ui.View):
 
         reviews = pr.get_reviews()
         for review in reviews:
-            if (
-                action == "APPROVE" or action == "REJECT"
-            ) and review.state == "APPROVED":
+            if action in ("APPROVE", "REJECT") and review.state == "APPROVED":
                 await interaction.response.send_message(
                     f"⚠️ Este PR #{self.pr_number} ya fue aprobado por **{review.user.login}**.",
                     ephemeral=False,
@@ -226,64 +224,59 @@ class ReviewPullRequestModal(discord.ui.Modal):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        try:
-            await interaction.response.defer(ephemeral=True)
 
+        # usamos defer porque hacemos llamadas externas (GitHub + edición de mensaje)
+        await interaction.response.defer(ephemeral=True)
+
+        if not self.channel_id or not self.message_id:
+            await interaction.followup.send(
+                "No se encontró el mensaje original (channel_id/message_id).",
+                ephemeral=True,
+            )
+            return
+
+        try:
             repo = gh.get_repo(self.repo_full)
             pr = repo.get_pull(self.pr_number)
             body_pull_request = str(self.children[0].value)
-
-            if not self.channel_id or not self.message_id:
-                print("No se proporcionaron channel_id o message_id.")
-                return
 
             if self.action == "APPROVE":
                 pr.create_review(body=body_pull_request, event="APPROVE")
 
                 print("PR approved")
 
-                try:
-                    channel = bot.get_channel(self.channel_id)
-                    msg = await channel.fetch_message(self.message_id)
+                merge_embed = discord.Embed(
+                    title=f"🔔 Solicitud de Merge para PR #{self.pr_number}",
+                    description=f"El PR #{self.pr_number} en el repositorio **{self.repo_full}** ha sido aprobado y está listo para ser mergeado.",
+                    color=discord.Color.green(),
+                )
+                merge_embed.set_thumbnail(
+                    url="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                )
+                merge_embed.set_footer(text="GitHub Bot 🤖")
 
-                    merge_embed = discord.Embed(
-                        title=f"🔔 Solicitud de Merge para PR #{self.pr_number}",
-                        description=f"El PR #{self.pr_number} en el repositorio **{self.repo_full}** ha sido aprobado y está listo para ser mergeado.",
-                        color=discord.Color.green(),
-                    )
-                    merge_embed.set_thumbnail(
-                        url="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-                    )
-                    merge_embed.set_footer(text="GitHub Bot 🤖")
+                merge_view = RequestToMergeButtons(
+                    self.pr_number, self.repo_full, self.channel_id, self.message_id
+                )
 
-                    merge_view = RequestToMergeButtons(
-                        self.pr_number, self.repo_full, self.channel_id, self.message_id
-                    )
-
-                    await msg.edit(embed=merge_embed, view=merge_view)
-
-                except Exception as e:
-                    print("Error al editar mensaje para merge:", e)
+                await msg.edit(embed=merge_embed, view=merge_view)
 
             elif self.action == "REJECT":
                 pr.create_review(body=body_pull_request, event="REQUEST_CHANGES")
                 pr.edit(state="closed")
                 print("PR rejected and closed")
 
-                try:
-                    channel = bot.get_channel(self.channel_id)
-                    msg = await channel.fetch_message(self.message_id)
+                channel = bot.get_channel(self.channel_id)
+                msg = await channel.fetch_message(self.message_id)
 
-                    new_embed = discord.Embed(
-                        title=f"❌ Pull Request #{self.pr_number} Rechazado",
-                        description=f"El PR en **{self.repo_full}** fue rechazado y cerrado.",
-                        color=discord.Color.red(),
-                    )
-                    new_embed.set_footer(text="GitHub Bot 🤖")
+                new_embed = discord.Embed(
+                    title=f"❌ Pull Request #{self.pr_number} Rechazado",
+                    description=f"El PR en **{self.repo_full}** fue rechazado y cerrado.",
+                    color=discord.Color.red(),
+                )
+                new_embed.set_footer(text="GitHub Bot 🤖")
 
-                    await msg.edit(embed=new_embed, view=None)
-                except Exception as e:
-                    print("Error al editar mensaje:", e)
+                await msg.edit(embed=new_embed, view=None)
 
         except Exception as e:
             await interaction.followup.send(
