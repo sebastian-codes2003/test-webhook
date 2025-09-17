@@ -1,7 +1,7 @@
-import discordbot
+import discordbot 
 import asyncio
 #Hola
-def handle_issues(data):
+def handle_issues(data): 
     action = data.get("action")
     if action == "opened":
         issue = data["issue"]
