@@ -40,31 +40,31 @@ Todo esto mediante botones y comandos interactivos en Discord, facilitando la co
 git clone https://github.com/tu-usuario/discord-github-webhook-bot.git
 cd discord-github-webhook-bot
 ```
-### 2️⃣ Ejecutar localmente
+
+### 2️⃣ Configurar variables de entorno
+Crea y edita el archivo `.env` en la raíz del proyecto (ver sección abajo).
+
+### 3️⃣ Ejecutar localmente
 ```bash
 python main.py
 ```
 El servidor Flask estará activo en 👉 http://localhost:5000/.
 
-### 2️⃣ Opcional: Exponer el servidor con ngrok
+### 4️⃣ Opcional: Exponer el servidor con ngrok
 Si deseas recibir webhooks de GitHub en desarrollo local, puedes usar [ngrok](https://ngrok.com/) para exponer tu servidor Flask a internet:
-
 ```bash
 ngrok http 5000
 ```
 Esto generará una URL pública que puedes usar como endpoint del webhook en GitHub:
-
 ```
 http://<tu-url-ngrok>/webhook
 ```
 
-### 3️⃣ Usar con Docker Compose
-
+### 5️⃣ Usar con Docker Compose
 Despliegue de ambiente y ejecución del servidor web
 ```bash
 docker-compose up --build -d
 ```
-
 Eliminación de ambiente
 ```bash
 docker-compose down -v
