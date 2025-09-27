@@ -1,10 +1,16 @@
 # syntax=docker/dockerfile:1
-FROM python:3.10-alpine
+FROM python:3.10-slim
+
 WORKDIR /discord-bot
-ENV FLASK_APP=main.py
-ENV FLASK_RUN_HOST=0.0.0.0
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-EXPOSE 5000
+
+# Instalar dependencias primero (capa cacheable)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar el código
 COPY . .
+
+EXPOSE 5000
+
+# Arrancar la app (usa Flask run o Python, según tu main.py)
 CMD ["python", "main.py"]

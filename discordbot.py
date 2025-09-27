@@ -245,6 +245,9 @@ class ReviewPullRequestModal(discord.ui.Modal):
 
                 print("PR approved")
 
+                channel = bot.get_channel(self.channel_id)
+                msg = await channel.fetch_message(self.message_id)
+                
                 merge_embed = discord.Embed(
                     title=f"🔔 Solicitud de Merge para PR #{self.pr_number}",
                     description=f"El PR #{self.pr_number} en el repositorio **{self.repo_full}** ha sido aprobado y está listo para ser mergeado.",
